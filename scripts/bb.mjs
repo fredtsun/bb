@@ -2,6 +2,7 @@
 import { deriveSlug } from './lib/slug.mjs';
 import { readFile } from 'node:fs/promises';
 import { validateBashJson } from './lib/validate.mjs';
+import { initBash, readBash, updateBash, setPhase } from './lib/bashjson.mjs';
 
 const [sub, ...rest] = process.argv.slice(2);
 
@@ -19,6 +20,10 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function tryParseJson(s) {
+  try { return JSON.parse(s); } catch { return s; }
+}
+
 const handlers = {
   slug(args) {
     const { flags, positional } = parseFlags(args);
@@ -27,6 +32,35 @@ const handlers = {
     const root = flags.root ?? process.cwd();
     const date = flags.date ?? today();
     process.stdout.write(deriveSlug(title, { date, root }) + '\n');
+  },
+  init(args) {
+    const { flags, positional } = parseFlags(args);
+    const [slug, title] = positional;
+    if (!slug || !title) { console.error('usage: bb init <slug> <title> [--root <dir>]'); process.exit(2); }
+    const root = flags.root ?? process.cwd();
+    initBash({ root, slug, title });
+    process.stdout.write(slug + '\n');
+  },
+  json(args) {
+    const [op, ...rest] = args;
+    const { flags, positional } = parseFlags(rest);
+    const root = flags.root ?? process.cwd();
+    if (op === 'get') {
+      const [slug] = positional;
+      process.stdout.write(JSON.stringify(readBash({ root, slug }), null, 2) + '\n');
+    } else if (op === 'set') {
+      const [slug, path, rawValue] = positional;
+      const value = tryParseJson(rawValue);
+      process.stdout.write(JSON.stringify(updateBash({ root, slug, path, value }), null, 2) + '\n');
+    } else {
+      console.error('usage: bb json <get|set> ...'); process.exit(2);
+    }
+  },
+  phase(args) {
+    const { flags, positional } = parseFlags(args);
+    const [slug, phase] = positional;
+    const root = flags.root ?? process.cwd();
+    process.stdout.write(JSON.stringify(setPhase({ root, slug, phase }), null, 2) + '\n');
   },
   async validate(args) {
     const { positional } = parseFlags(args);
