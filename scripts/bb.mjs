@@ -32,7 +32,14 @@ const handlers = {
     const { positional } = parseFlags(args);
     const [file] = positional;
     if (!file) { console.error('usage: bb validate <bash.json>'); process.exit(2); }
-    const obj = JSON.parse(await readFile(file, 'utf8'));
+    let obj;
+    try {
+      obj = JSON.parse(await readFile(file, 'utf8'));
+    } catch (err) {
+      if (err.code === 'ENOENT') console.error(`error: file not found: ${file}`);
+      else console.error(`error: invalid JSON in ${file}: ${err.message}`);
+      process.exit(1);
+    }
     const { valid, errors } = validateBashJson(obj);
     if (valid) { process.stdout.write('ok\n'); return; }
     console.error('invalid:', JSON.stringify(errors, null, 2));

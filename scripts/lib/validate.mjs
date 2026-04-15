@@ -8,5 +8,5 @@ const validate = ajv.compile(bashJsonSchema);
 
 export function validateBashJson(obj) {
   const valid = validate(obj);
-  return { valid, errors: valid ? [] : validate.errors };
+  return { valid, errors: valid ? [] : validate.errors.slice() };
 }
