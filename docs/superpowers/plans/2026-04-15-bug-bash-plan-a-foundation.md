@@ -849,7 +849,7 @@ test('renderStatus: contains all fixed sections', () => {
   assert.match(md, /\*\*Status:\*\* Active — awaiting connector pick/);
   assert.match(md, /## Where we left off\nJust started\./);
   assert.match(md, /## Exact next action on resume\nAskUserQuestion for connector selection\./);
-  assert.match(md, /## Phase progress\n- \[x\] Ingest\n- \[ \] Setup/);
+  assert.match(md, /## Phase progress\n- \[ \] Ingest\n- \[ \] Setup/);
   assert.match(md, /## Pending decisions \/ subagent runs\nNone/);
   assert.match(md, /## Recent events\n- 2026-04-15T12:00:00Z — bash created/);
 });
