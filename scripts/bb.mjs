@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { validateBashJson } from './lib/validate.mjs';
 import { initBash, readBash, updateBash, setPhase } from './lib/bashjson.mjs';
 import { writeStatus } from './lib/statusmd.mjs';
+import { regenerateIndex } from './lib/indexmd.mjs';
 
 const [sub, ...rest] = process.argv.slice(2);
 
@@ -87,6 +88,11 @@ const handlers = {
       event: flags.event,
     });
     process.stdout.write(path + '\n');
+  },
+  index(args) {
+    const { flags } = parseFlags(args);
+    const root = flags.root ?? process.cwd();
+    process.stdout.write(regenerateIndex({ root }) + '\n');
   },
   async validate(args) {
     const { positional } = parseFlags(args);
