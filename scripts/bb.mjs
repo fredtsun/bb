@@ -3,6 +3,7 @@ import { deriveSlug } from './lib/slug.mjs';
 import { readFile } from 'node:fs/promises';
 import { validateBashJson } from './lib/validate.mjs';
 import { initBash, readBash, updateBash, setPhase } from './lib/bashjson.mjs';
+import { writeStatus } from './lib/statusmd.mjs';
 
 const [sub, ...rest] = process.argv.slice(2);
 
@@ -71,6 +72,21 @@ const handlers = {
     if (!slug || !phase) { console.error('usage: bb phase <slug> <phase> [--root <dir>]'); process.exit(2); }
     const root = flags.root ?? process.cwd();
     process.stdout.write(JSON.stringify(setPhase({ root, slug, phase }), null, 2) + '\n');
+  },
+  'status-md'(args) {
+    const { flags, positional } = parseFlags(args);
+    const [slug] = positional;
+    const root = flags.root ?? process.cwd();
+    const path = writeStatus({
+      root, slug,
+      phase: flags.phase,
+      status: flags.status,
+      narrative: flags.narrative ?? '',
+      next: flags.next,
+      pending: flags.pending,
+      event: flags.event,
+    });
+    process.stdout.write(path + '\n');
   },
   async validate(args) {
     const { positional } = parseFlags(args);
