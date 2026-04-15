@@ -21,6 +21,7 @@ function today() {
 }
 
 function tryParseJson(s) {
+  if (s.startsWith('{') || s.startsWith('[')) return JSON.parse(s);
   try { return JSON.parse(s); } catch { return s; }
 }
 
@@ -47,10 +48,18 @@ const handlers = {
     const root = flags.root ?? process.cwd();
     if (op === 'get') {
       const [slug] = positional;
-      process.stdout.write(JSON.stringify(readBash({ root, slug }), null, 2) + '\n');
+      if (!slug) { console.error('usage: bb json get <slug> [--root <dir>]'); process.exit(2); }
+      try { process.stdout.write(JSON.stringify(readBash({ root, slug }), null, 2) + '\n'); }
+      catch (err) { console.error(`error: ${err.message}`); process.exit(1); }
     } else if (op === 'set') {
       const [slug, path, rawValue] = positional;
-      const value = tryParseJson(rawValue);
+      if (!slug || !path || rawValue === undefined) {
+        console.error('usage: bb json set <slug> <key> <value> [--root <dir>]');
+        process.exit(2);
+      }
+      let value;
+      try { value = tryParseJson(rawValue); }
+      catch (err) { console.error(`error: invalid JSON value: ${err.message}`); process.exit(1); }
       process.stdout.write(JSON.stringify(updateBash({ root, slug, path, value }), null, 2) + '\n');
     } else {
       console.error('usage: bb json <get|set> ...'); process.exit(2);
@@ -59,6 +68,7 @@ const handlers = {
   phase(args) {
     const { flags, positional } = parseFlags(args);
     const [slug, phase] = positional;
+    if (!slug || !phase) { console.error('usage: bb phase <slug> <phase> [--root <dir>]'); process.exit(2); }
     const root = flags.root ?? process.cwd();
     process.stdout.write(JSON.stringify(setPhase({ root, slug, phase }), null, 2) + '\n');
   },

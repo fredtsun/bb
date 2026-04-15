@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateBashJson } from './validate.mjs';
 
-// whitelist of updatable paths (dot-path syntax; only top-level for v1)
+// whitelist of top-level keys updateBash is allowed to change
 const UPDATABLE = new Set([
   'status',
   'connectors_used',
@@ -15,7 +15,9 @@ function bashDir(root, slug) { return join(root, '.bb', slug); }
 function bashFile(root, slug) { return join(bashDir(root, slug), 'bash.json'); }
 
 export function readBash({ root, slug }) {
-  return JSON.parse(readFileSync(bashFile(root, slug), 'utf8'));
+  const file = bashFile(root, slug);
+  if (!existsSync(file)) throw new Error(`no bash session found for slug: ${slug}`);
+  return JSON.parse(readFileSync(file, 'utf8'));
 }
 
 function writeValidated(root, slug, obj) {
