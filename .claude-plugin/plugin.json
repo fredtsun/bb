@@ -1,0 +1,11 @@
+{
+  "name": "bb",
+  "description": "Structured bug-bash workflow: connector-based context ingest, agent-driven scenario testing, rich findings, human-gated retest, final report.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Fred Sun",
+    "email": "fredthekid@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": ["bug-bash", "testing", "qa", "workflow"]
+}
