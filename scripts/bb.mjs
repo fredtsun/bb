@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { deriveSlug } from './lib/slug.mjs';
+import { readFile } from 'node:fs/promises';
+import { validateBashJson } from './lib/validate.mjs';
 
 const [sub, ...rest] = process.argv.slice(2);
 
@@ -26,12 +28,26 @@ const handlers = {
     const date = flags.date ?? today();
     process.stdout.write(deriveSlug(title, { date, root }) + '\n');
   },
+  async validate(args) {
+    const { positional } = parseFlags(args);
+    const [file] = positional;
+    if (!file) { console.error('usage: bb validate <bash.json>'); process.exit(2); }
+    const obj = JSON.parse(await readFile(file, 'utf8'));
+    const { valid, errors } = validateBashJson(obj);
+    if (valid) { process.stdout.write('ok\n'); return; }
+    console.error('invalid:', JSON.stringify(errors, null, 2));
+    process.exit(1);
+  },
 };
 
-const handler = handlers[sub];
-if (!handler) {
-  console.error(`unknown subcommand: ${sub ?? '(none)'}`);
-  console.error('available: ' + Object.keys(handlers).join(', '));
-  process.exit(2);
+async function main() {
+  const handler = handlers[sub];
+  if (!handler) {
+    console.error(`unknown subcommand: ${sub ?? '(none)'}`);
+    console.error('available: ' + Object.keys(handlers).join(', '));
+    process.exit(2);
+  }
+  await handler(rest);
 }
-handler(rest);
+
+main().catch(err => { console.error(err); process.exit(1); });
