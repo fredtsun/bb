@@ -1201,16 +1201,26 @@ test('archive: error on missing file', () => {
   assert.throws(() => archiveToHistory({ root, slug: 's1', files: ['does-not-exist.md'] }), /not found/);
 });
 
-test('archive: two archive calls go to distinct timestamp dirs', async () => {
+test('archive: two archive calls in tight succession go to distinct timestamp dirs', () => {
   const root = mkroot();
   initBash({ root, slug: 's1', title: 'S' });
   writeFileSync(join(root, '.bb', 's1', 'a.md'), '1');
   writeFileSync(join(root, '.bb', 's1', 'b.md'), '2');
   const h1 = archiveToHistory({ root, slug: 's1', files: ['a.md'] });
-  // small wait to force different ISO second (timestamp sanitized into dir name)
-  await new Promise(r => setTimeout(r, 1100));
   const h2 = archiveToHistory({ root, slug: 's1', files: ['b.md'] });
   assert.notEqual(h1, h2);
+});
+
+test('archive: partial failure is atomic — no files moved, no .history dir created', () => {
+  const root = mkroot();
+  initBash({ root, slug: 's1', title: 'S' });
+  writeFileSync(join(root, '.bb', 's1', 'a.md'), 'A');
+  assert.throws(
+    () => archiveToHistory({ root, slug: 's1', files: ['a.md', 'missing.md'] }),
+    /not found/,
+  );
+  assert.equal(existsSync(join(root, '.bb', 's1', 'a.md')), true);
+  assert.equal(existsSync(join(root, '.bb', 's1', '.history')), false);
 });
 ```
 
@@ -1223,27 +1233,34 @@ Expected: FAIL — missing module.
 
 `scripts/lib/archive.mjs`:
 ```js
-import { existsSync, mkdirSync, renameSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import { join, dirname } from 'node:path';
 
 const PROTECTED = new Set(['bash.json', 'STATUS.md']);
 
 function tsDir() {
-  // safe for filesystem: replace colons with dashes
-  return new Date().toISOString().replace(/:/g, '-').replace(/\.\d+Z$/, 'Z');
+  // filesystem-safe: colons and dot become dashes; random suffix guarantees uniqueness under tight succession
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').replace(/Z$/, '');
+  return `${ts}-${randomBytes(2).toString('hex')}`;
 }
 
 export function archiveToHistory({ root, slug, files }) {
   const bashDir = join(root, '.bb', slug);
-  const histRoot = join(bashDir, '.history', tsDir());
-  mkdirSync(histRoot, { recursive: true });
 
+  const pairs = [];
   for (const rel of files) {
     if (PROTECTED.has(rel) || PROTECTED.has(rel.split('/').pop())) {
       throw new Error(`protected file refused for archive: ${rel}`);
     }
     const src = join(bashDir, rel);
     if (!existsSync(src)) throw new Error(`not found: ${rel}`);
+    pairs.push({ rel, src });
+  }
+
+  const histRoot = join(bashDir, '.history', tsDir());
+  mkdirSync(histRoot, { recursive: true });
+  for (const { rel, src } of pairs) {
     const dst = join(histRoot, rel);
     mkdirSync(dirname(dst), { recursive: true });
     renameSync(src, dst);
