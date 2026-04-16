@@ -5,6 +5,7 @@ import { validateBashJson } from './lib/validate.mjs';
 import { initBash, readBash, updateBash, setPhase } from './lib/bashjson.mjs';
 import { writeStatus } from './lib/statusmd.mjs';
 import { regenerateIndex } from './lib/indexmd.mjs';
+import { archiveToHistory } from './lib/archive.mjs';
 
 const [sub, ...rest] = process.argv.slice(2);
 
@@ -93,6 +94,16 @@ const handlers = {
     const { flags } = parseFlags(args);
     const root = flags.root ?? process.cwd();
     process.stdout.write(regenerateIndex({ root }) + '\n');
+  },
+  archive(args) {
+    const { flags, positional } = parseFlags(args);
+    const [slug, ...files] = positional;
+    if (!slug || files.length === 0) {
+      console.error('usage: bb archive <slug> <file> [<file> ...] [--root <dir>]');
+      process.exit(2);
+    }
+    const root = flags.root ?? process.cwd();
+    process.stdout.write(archiveToHistory({ root, slug, files }) + '\n');
   },
   async validate(args) {
     const { positional } = parseFlags(args);
