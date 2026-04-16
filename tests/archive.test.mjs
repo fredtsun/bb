@@ -42,14 +42,24 @@ test('archive: error on missing file', () => {
   assert.throws(() => archiveToHistory({ root, slug: 's1', files: ['does-not-exist.md'] }), /not found/);
 });
 
-test('archive: two archive calls go to distinct timestamp dirs', async () => {
+test('archive: two archive calls in tight succession go to distinct timestamp dirs', () => {
   const root = mkroot();
   initBash({ root, slug: 's1', title: 'S' });
   writeFileSync(join(root, '.bb', 's1', 'a.md'), '1');
   writeFileSync(join(root, '.bb', 's1', 'b.md'), '2');
   const h1 = archiveToHistory({ root, slug: 's1', files: ['a.md'] });
-  // small wait to force different ISO second (timestamp sanitized into dir name)
-  await new Promise(r => setTimeout(r, 1100));
   const h2 = archiveToHistory({ root, slug: 's1', files: ['b.md'] });
   assert.notEqual(h1, h2);
+});
+
+test('archive: partial failure is atomic — no files moved, no .history dir created', () => {
+  const root = mkroot();
+  initBash({ root, slug: 's1', title: 'S' });
+  writeFileSync(join(root, '.bb', 's1', 'a.md'), 'A');
+  assert.throws(
+    () => archiveToHistory({ root, slug: 's1', files: ['a.md', 'missing.md'] }),
+    /not found/,
+  );
+  assert.equal(existsSync(join(root, '.bb', 's1', 'a.md')), true);
+  assert.equal(existsSync(join(root, '.bb', 's1', '.history')), false);
 });
