@@ -8,7 +8,13 @@ export function regenerateIndex({ root }) {
     .filter(e => e.isDirectory() && e.name !== 'archive')
     .map(e => join(bbDir, e.name, 'bash.json'))
     .filter(p => existsSync(p))
-    .map(p => JSON.parse(readFileSync(p, 'utf8')));
+    .map(p => {
+      try {
+        return JSON.parse(readFileSync(p, 'utf8'));
+      } catch (err) {
+        throw new Error(`malformed bash.json at ${p}: ${err.message}`);
+      }
+    });
 
   const active = entries.filter(b => b.status === 'active' || b.status === 'paused');
   const complete = entries.filter(b => b.status === 'complete');
