@@ -1015,7 +1015,7 @@ git commit -m "feat: STATUS.md renderer and writer"
 ```js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initBash, setPhase, updateBash } from '../scripts/lib/bashjson.mjs';
@@ -1058,7 +1058,7 @@ test('index: ignores non-bash subdirs (archive/, etc.)', () => {
   const root = mkroot();
   initBash({ root, slug: 's1', title: 'S1' });
   // archive/ and any dir without bash.json should be skipped
-  import('node:fs').then(fs => fs.mkdirSync(join(root, '.bb', 'archive'), { recursive: true }));
+  mkdirSync(join(root, '.bb', 'archive'), { recursive: true });
   regenerateIndex({ root });
   const md = readFileSync(join(root, '.bb', 'INDEX.md'), 'utf8');
   assert.doesNotMatch(md, /\barchive\b.*active/);
